@@ -213,7 +213,7 @@ Return ONLY the JSON array. If no anomalies are found, return an empty JSON arra
             # Call the vLLM API to get Mistral 7B response
             payload = {
                 "prompt": prompt,
-                "temperature": 0.1,
+                "temperature": 0.3,
                 "max_tokens": 1000,
                 "stop": None
             }
