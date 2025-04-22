@@ -1,0 +1,246 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('documents') }}">Documents</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ document.filename }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="display-5 mb-0">
+                <i class="fas fa-file-contract me-2"></i> {{ document.filename }}
+            </h1>
+            <div class="d-flex align-items-center">
+                <div id="status-icon" class="status-icon {{ 'status-completed' if document.processed else ('status-processing' if processing_job and processing_job.status == 'processing' else 'status-pending') }}"></div>
+                <div id="document-status">
+                    {% if document.processed %}
+                        <span class="badge bg-success">Processed</span>
+                    {% elif processing_job and processing_job.status == 'processing' %}
+                        <span class="badge bg-warning">Processing</span>
+                    {% elif processing_job and processing_job.status == 'failed' %}
+                        <span class="badge bg-danger">Failed</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Pending</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Document Information -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i> Document Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Document ID:</strong> {{ document.id }}</p>
+                        <p><strong>File Type:</strong> <span class="badge bg-secondary">{{ document.file_type.upper() }}</span></p>
+                        <p><strong>Upload Date:</strong> {{ document.upload_date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p>
+                            <strong>Status:</strong> 
+                            {% if document.processed %}
+                                <span class="badge bg-success">Processed</span>
+                            {% elif processing_job and processing_job.status == 'processing' %}
+                                <span class="badge bg-warning">Processing</span>
+                            {% elif processing_job and processing_job.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Pending</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Weaviate ID:</strong> {{ document.weaviate_id if document.weaviate_id else 'N/A' }}</p>
+                        <p><strong>Content Length:</strong> {{ document.content_length if document.content_length else 'N/A' }} characters</p>
+                    </div>
+                </div>
+                
+                <div id="processing-info" class="alert alert-info {{ 'd-none' if document.processed or not processing_job or processing_job.status != 'processing' else '' }}">
+                    <h6><i class="fas fa-spinner fa-spin me-2"></i> Processing in Progress</h6>
+                    <p class="mb-0">Your document is currently being processed. This page will automatically update when processing is complete.</p>
+                </div>
+                
+                {% if processing_job and processing_job.error_message %}
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i> Processing Error</h6>
+                    <p class="mb-0">{{ processing_job.error_message }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Document Content -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-alt me-2"></i> Document Content
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                {% if document_content %}
+                    <div id="document-content" class="document-content">{{ document_content }}</div>
+                {% elif document.processed %}
+                    <div class="alert alert-warning m-3">
+                        <i class="fas fa-exclamation-circle me-2"></i> Document content could not be retrieved from the vector database.
+                    </div>
+                {% else %}
+                    <div class="alert alert-info m-3">
+                        <i class="fas fa-info-circle me-2"></i> Document content will be available after processing is complete.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Anomalies Panel -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-danger bg-gradient text-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Detected Anomalies
+                </h5>
+                <span class="badge bg-light text-dark">{{ anomalies|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% if anomalies %}
+                        {% for anomaly in anomalies %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="mb-1">
+                                        <span class="badge bg-{{ 'danger' if anomaly.severity == 'high' else ('warning' if anomaly.severity == 'medium' else 'info') }}">
+                                            {{ anomaly.severity.upper() }}
+                                        </span>
+                                        <span class="ms-2">{{ anomaly.anomaly_type.capitalize() }} Anomaly</span>
+                                    </h6>
+                                    <small class="text-muted">ID: {{ anomaly.id }}</small>
+                                </div>
+                                <p class="mb-1">{{ anomaly.description }}</p>
+                                
+                                {% if anomaly.context %}
+                                <div class="context-box mt-2 mb-2">{{ anomaly.context }}</div>
+                                {% endif %}
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <small class="text-muted">Detected: {{ anomaly.detected_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    {% if anomaly.start_position is not none and anomaly.end_position is not none %}
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="scrollToAnomaly({{ anomaly.id }})">
+                                        <i class="fas fa-search me-1"></i> Locate
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% elif document.processed %}
+                        <div class="list-group-item text-center py-4">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5>No Anomalies Detected</h5>
+                            <p class="text-muted">This document appears to be free of anomalies.</p>
+                        </div>
+                    {% else %}
+                        <div class="list-group-item text-center py-4">
+                            <i class="fas fa-hourglass-half fa-3x text-muted mb-3"></i>
+                            <h5>Pending Analysis</h5>
+                            <p class="text-muted">Anomalies will be displayed after document processing is complete.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Processing Timeline -->
+        {% if processing_job %}
+        <div class="card mb-4">
+            <div class="card-header bg-secondary bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2"></i> Processing Timeline
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="timeline">
+                    <li class="timeline-item complete">
+                        <div class="timeline-item-content">
+                            <h6>Document Uploaded</h6>
+                            <p class="small text-muted mb-0">{{ document.upload_date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item {{ 'complete' if processing_job.status != 'pending' else 'pending' }}">
+                        <div class="timeline-item-content">
+                            <h6>Processing Started</h6>
+                            <p class="small text-muted mb-0">
+                                {% if processing_job.start_time %}
+                                    {{ processing_job.start_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                                {% else %}
+                                    Pending
+                                {% endif %}
+                            </p>
+                        </div>
+                    </li>
+                    
+                    <li class="timeline-item {{ 'complete' if processing_job.status == 'completed' else ('failed' if processing_job.status == 'failed' else 'pending') }}">
+                        <div class="timeline-item-content">
+                            <h6>Processing {{ 'Completed' if processing_job.status == 'completed' else ('Failed' if processing_job.status == 'failed' else 'In Progress') }}</h6>
+                            <p class="small text-muted mb-0">
+                                {% if processing_job.end_time %}
+                                    {{ processing_job.end_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                                {% else %}
+                                    Pending
+                                {% endif %}
+                            </p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-header bg-secondary bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs me-2"></i> Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('documents') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to Documents
+                    </a>
+                    <a href="{{ url_for('chainlit_redirect') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-robot me-2"></i> Ask AI About This Document
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // If document is not processed yet, check status periodically
+        {% if not document.processed %}
+            refreshDocumentStatus({{ document.id }}, 5000);
+        {% endif %}
+        
+        // Initialize document highlighting with anomalies
+        {% if document_content and anomalies %}
+            const anomalies = {{ anomalies|tojson }};
+            initializeDocumentHighlighting(anomalies);
+        {% endif %}
+    });
+</script>
+{% endblock %}

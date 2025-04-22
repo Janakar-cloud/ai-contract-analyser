@@ -1,0 +1,295 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Upload Documents</li>
+            </ol>
+        </nav>
+        <h1 class="display-5 mb-4">
+            <i class="fas fa-upload me-2"></i> Upload Documents
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Upload Form -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-upload me-2"></i> Contract Document Upload
+                </h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-4">
+                        <div class="upload-area p-5 text-center border rounded mb-3" id="dropZone">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                            <h4>Drag and drop files here</h4>
+                            <p class="text-muted">or</p>
+                            <input type="file" id="file" name="file" class="d-none" multiple>
+                            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('file').click()">
+                                <i class="fas fa-folder-open me-2"></i> Browse Files
+                            </button>
+                        </div>
+                        
+                        <div id="fileList" class="list-group mb-3"></div>
+                        
+                        <div class="form-text mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Supported formats: PDF, DOCX, TXT, RTF, DOC
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="uploadButton" disabled>
+                                <i class="fas fa-upload me-2"></i> Upload and Process Documents
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="progress d-none" id="uploadProgress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Features -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs me-2"></i> Processing Features
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-robot me-2"></i> AI-Powered Analysis</h6>
+                            <p class="text-muted small">Uses Mistral 7B large language model to identify anomalies in contract documents with high precision.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-search me-2"></i> Vector Search</h6>
+                            <p class="text-muted small">Documents are stored in a Weaviate vector database for semantic search and retrieval.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-calendar-alt me-2"></i> Date Anomaly Detection</h6>
+                            <p class="text-muted small">Identifies inconsistent, unusual, or potentially problematic dates in contracts.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-dollar-sign me-2"></i> Numerical Value Analysis</h6>
+                            <p class="text-muted small">Detects unusual or inconsistent numerical values that might indicate errors or risks.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Info Panel -->
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-info bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i> Upload Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Supported File Types</h6>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-file-pdf me-2 text-danger"></i> PDF Documents</span>
+                            <span class="badge bg-primary">Recommended</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-file-word me-2 text-primary"></i> Word Documents (DOCX, DOC)</span>
+                            <span class="badge bg-primary">Recommended</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-file-alt me-2 text-secondary"></i> Text Files (TXT)</span>
+                            <span class="badge bg-secondary">Supported</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-file-alt me-2 text-secondary"></i> Rich Text Files (RTF)</span>
+                            <span class="badge bg-secondary">Supported</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>File Size Limits</h6>
+                    <p class="text-muted small mb-0">Maximum file size: <strong>16 MB</strong> per file</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Processing Time</h6>
+                    <p class="text-muted small mb-0">Processing time depends on document size and complexity. Most documents are processed within 1-2 minutes.</p>
+                </div>
+                
+                <div class="alert alert-warning mb-3">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i> Important</h6>
+                    <p class="small mb-0">All documents are processed locally. No data is sent to external services unless explicitly configured.</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Batch Processing</h6>
+                    <p class="text-muted small mb-0">You can upload multiple files at once for batch processing.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-secondary bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-question-circle me-2"></i> Need Help?
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-3">Have questions about document uploads or processing?</p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('chainlit_redirect') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-robot me-2"></i> Ask the AI Assistant
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fileInput = document.getElementById('file');
+        const dropZone = document.getElementById('dropZone');
+        const fileList = document.getElementById('fileList');
+        const uploadButton = document.getElementById('uploadButton');
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadProgress = document.getElementById('uploadProgress');
+        
+        // Handle file selection via input
+        fileInput.addEventListener('change', function() {
+            handleFiles(this.files);
+        });
+        
+        // Handle drag and drop
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('bg-light');
+        });
+        
+        dropZone.addEventListener('dragleave', function() {
+            dropZone.classList.remove('bg-light');
+        });
+        
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('bg-light');
+            
+            const dt = e.dataTransfer;
+            handleFiles(dt.files);
+        });
+        
+        // Handle file display and validation
+        function handleFiles(files) {
+            fileList.innerHTML = '';
+            let validFiles = 0;
+            
+            Array.from(files).forEach(file => {
+                const extension = file.name.split('.').pop().toLowerCase();
+                const isValid = ['pdf', 'docx', 'txt', 'doc', 'rtf'].includes(extension);
+                const isSizeValid = file.size <= 16 * 1024 * 1024; // 16MB
+                
+                if (isValid && isSizeValid) {
+                    validFiles++;
+                }
+                
+                const listItem = document.createElement('div');
+                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                
+                // File icon based on type
+                let fileIcon = 'fa-file';
+                let iconClass = 'text-secondary';
+                
+                if (extension === 'pdf') {
+                    fileIcon = 'fa-file-pdf';
+                    iconClass = 'text-danger';
+                } else if (['docx', 'doc', 'rtf'].includes(extension)) {
+                    fileIcon = 'fa-file-word';
+                    iconClass = 'text-primary';
+                } else if (extension === 'txt') {
+                    fileIcon = 'fa-file-alt';
+                    iconClass = 'text-secondary';
+                }
+                
+                // Format file size
+                let fileSize = '';
+                if (file.size < 1024) {
+                    fileSize = file.size + ' B';
+                } else if (file.size < 1024 * 1024) {
+                    fileSize = Math.round(file.size / 1024) + ' KB';
+                } else {
+                    fileSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                }
+                
+                // Create content
+                const fileInfo = document.createElement('div');
+                fileInfo.innerHTML = `
+                    <i class="fas ${fileIcon} ${iconClass} me-2"></i>
+                    <span>${file.name}</span>
+                    <small class="text-muted ms-2">(${fileSize})</small>
+                `;
+                
+                const validationBadge = document.createElement('span');
+                
+                if (!isValid) {
+                    validationBadge.className = 'badge bg-danger';
+                    validationBadge.textContent = 'Invalid format';
+                } else if (!isSizeValid) {
+                    validationBadge.className = 'badge bg-danger';
+                    validationBadge.textContent = 'File too large';
+                } else {
+                    validationBadge.className = 'badge bg-success';
+                    validationBadge.textContent = 'Valid';
+                }
+                
+                listItem.appendChild(fileInfo);
+                listItem.appendChild(validationBadge);
+                fileList.appendChild(listItem);
+            });
+            
+            // Enable/disable upload button
+            uploadButton.disabled = validFiles === 0;
+        }
+        
+        // Simulate upload progress
+        uploadForm.addEventListener('submit', function() {
+            uploadButton.disabled = true;
+            uploadProgress.classList.remove('d-none');
+            const progressBar = uploadProgress.querySelector('.progress-bar');
+            
+            let progress = 0;
+            const interval = setInterval(function() {
+                progress += 5;
+                progressBar.style.width = progress + '%';
+                progressBar.setAttribute('aria-valuenow', progress);
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                }
+            }, 250);
+        });
+    });
+</script>
+{% endblock %}

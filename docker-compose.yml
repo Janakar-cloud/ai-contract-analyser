@@ -1,0 +1,188 @@
+version: '3.8'
+
+services:
+  # Main Flask application
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: contract-anomaly-app
+    ports:
+      - "5000:5000"
+    volumes:
+      - data:/data
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////data/contract_anomaly.db}
+      - UPLOAD_FOLDER=/data/uploads
+      - DEV_MODE=${DEV_MODE:-true}
+      - VLLM_ENABLED=${VLLM_ENABLED:-false}
+      - WEAVIATE_ENABLED=${WEAVIATE_ENABLED:-false}
+      - VLLM_HOST=vllm
+      - VLLM_PORT=8000
+      - WEAVIATE_URL=http://weaviate:8080
+      - SESSION_SECRET=${SESSION_SECRET:-default_dev_secret_key_change_in_production}
+    networks:
+      - contract-network
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # PostgreSQL database for production use
+  postgres:
+    image: postgres:15-alpine
+    container_name: contract-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-contracts}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - contract-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Weaviate vector database (optional in development mode)
+  weaviate:
+    image: semitechnologies/weaviate:1.20.5
+    container_name: contract-weaviate
+    ports:
+      - "8080:8080"
+    environment:
+      QUERY_DEFAULTS_LIMIT: 20
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'text2vec-transformers'
+      ENABLE_MODULES: 'text2vec-transformers'
+      TRANSFORMERS_INFERENCE_API: 'http://t2v-transformers:8080'
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - contract-network
+    depends_on:
+      - t2v-transformers
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+
+  # Transformer model for Weaviate embeddings (optional in development mode)
+  t2v-transformers:
+    image: semitechnologies/transformers-inference:sentence-transformers-all-MiniLM-L6-v2
+    container_name: contract-transformers
+    environment:
+      ENABLE_CUDA: '0'
+    networks:
+      - contract-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+
+  # ChainLit UI service 
+  chainlit:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: contract-chainlit
+    ports:
+      - "8000:8000"
+    volumes:
+      - data:/data
+    environment:
+      - APP_HOST=app
+      - APP_PORT=5000
+      - PYTHONPATH=/app
+    command: chainlit run chainlit_app.py --port 8000 --host 0.0.0.0
+    networks:
+      - contract-network
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Redis for caching and task queue (useful for scaling)
+  redis:
+    image: redis:alpine
+    container_name: contract-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - contract-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 256M
+
+  # Nginx for serving static files and load balancing
+  nginx:
+    image: nginx:alpine
+    container_name: contract-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+      - chainlit
+    networks:
+      - contract-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
+
+networks:
+  contract-network:
+    driver: bridge
+
+volumes:
+  data:
+  weaviate_data:
+  postgres_data:
+  redis_data:

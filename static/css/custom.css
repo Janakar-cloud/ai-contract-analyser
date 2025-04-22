@@ -1,0 +1,160 @@
+/* Custom styles for Contract Anomaly Detector */
+
+/* Upload zone styling */
+.upload-area {
+    border: 2px dashed var(--bs-border-color);
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+/* Highlight anomalies in document content */
+.anomaly-highlight {
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.anomaly-highlight.high {
+    background-color: rgba(var(--bs-danger-rgb), 0.2);
+    border-bottom: 2px solid var(--bs-danger);
+}
+
+.anomaly-highlight.medium {
+    background-color: rgba(var(--bs-warning-rgb), 0.2);
+    border-bottom: 2px solid var(--bs-warning);
+}
+
+.anomaly-highlight.low {
+    background-color: rgba(var(--bs-info-rgb), 0.2);
+    border-bottom: 2px solid var(--bs-info);
+}
+
+/* Document viewer */
+.document-content {
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    line-height: 1.5;
+    padding: 1rem;
+    background-color: rgba(var(--bs-dark-rgb), 0.2);
+    border-radius: 5px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* Anomaly metadata */
+.anomaly-meta {
+    font-size: 0.85rem;
+    color: var(--bs-gray-600);
+}
+
+/* Processing status icons */
+.status-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.status-processing {
+    background-color: var(--bs-warning);
+    animation: pulse 1.5s infinite;
+}
+
+.status-completed {
+    background-color: var(--bs-success);
+}
+
+.status-failed {
+    background-color: var(--bs-danger);
+}
+
+.status-pending {
+    background-color: var(--bs-secondary);
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Context box for anomalies */
+.context-box {
+    background-color: rgba(var(--bs-dark-rgb), 0.3);
+    border-left: 3px solid var(--bs-primary);
+    padding: 0.75rem;
+    border-radius: 0 5px 5px 0;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    overflow-x: auto;
+}
+
+/* Timeline for document processing */
+.timeline {
+    position: relative;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.timeline:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 20px;
+    width: 2px;
+    background-color: var(--bs-gray-600);
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 50px;
+    margin-bottom: 1.5rem;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-item:before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    border: 2px solid var(--bs-dark);
+}
+
+.timeline-item.complete:before {
+    background-color: var(--bs-success);
+}
+
+.timeline-item.failed:before {
+    background-color: var(--bs-danger);
+}
+
+.timeline-item.pending:before {
+    background-color: var(--bs-secondary);
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    height: 200px;
+    width: 100%;
+}

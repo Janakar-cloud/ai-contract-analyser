@@ -1,0 +1,379 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('documents') }}">Documents</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Analysis Results</li>
+            </ol>
+        </nav>
+        <h1 class="display-5 mb-4">
+            <i class="fas fa-chart-bar me-2"></i> Analysis Results
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Document Summary -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-contract me-2"></i> Document Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if document %}
+                <div class="text-center mb-4">
+                    <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+                    <h4>{{ document.filename }}</h4>
+                    <p class="text-muted">
+                        <span class="badge bg-secondary">{{ document.file_type.upper() }}</span>
+                        <span class="ms-2">{{ document.content_length if document.content_length else 'N/A' }} characters</span>
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Document Information</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Document ID</th>
+                            <td>{{ document.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Upload Date</th>
+                            <td>{{ document.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td>
+                                {% if document.processed %}
+                                <span class="badge bg-success">Processed</span>
+                                {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Anomalies Found</th>
+                            <td>
+                                {% if document.anomalies %}
+                                <span class="badge bg-{{ 'danger' if document.anomalies|length > 0 else 'success' }}">
+                                    {{ document.anomalies|length }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">0</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('document_view', doc_id=document.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i> View Full Document
+                    </a>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Document not found.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Anomaly Summary -->
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-danger bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Anomaly Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if anomalies and anomalies|length > 0 %}
+                <!-- Anomaly Stats -->
+                <div class="row text-center mb-4">
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 mb-2">
+                            <h3>{{ anomalies|selectattr('severity', 'equalto', 'high')|list|length }}</h3>
+                            <small class="text-muted">High Severity</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 mb-2">
+                            <h3>{{ anomalies|selectattr('severity', 'equalto', 'medium')|list|length }}</h3>
+                            <small class="text-muted">Medium Severity</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 mb-2">
+                            <h3>{{ anomalies|selectattr('severity', 'equalto', 'low')|list|length }}</h3>
+                            <small class="text-muted">Low Severity</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Anomaly Types -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6>Anomaly Types</h6>
+                        <div class="progress" style="height: 25px;">
+                            {% set date_count = anomalies|selectattr('anomaly_type', 'equalto', 'date')|list|length %}
+                            {% set number_count = anomalies|selectattr('anomaly_type', 'equalto', 'number')|list|length %}
+                            {% set combined_count = anomalies|selectattr('anomaly_type', 'equalto', 'combined')|list|length %}
+                            {% set other_count = anomalies|length - date_count - number_count - combined_count %}
+                            {% set total = anomalies|length %}
+                            
+                            {% if date_count > 0 %}
+                            <div class="progress-bar bg-primary" role="progressbar" 
+                                 style="width: {{ (date_count / total * 100) | round }}%;" 
+                                 aria-valuenow="{{ date_count }}" 
+                                 aria-valuemin="0" aria-valuemax="{{ total }}">
+                                Date ({{ date_count }})
+                            </div>
+                            {% endif %}
+                            
+                            {% if number_count > 0 %}
+                            <div class="progress-bar bg-info" role="progressbar" 
+                                 style="width: {{ (number_count / total * 100) | round }}%;" 
+                                 aria-valuenow="{{ number_count }}" 
+                                 aria-valuemin="0" aria-valuemax="{{ total }}">
+                                Number ({{ number_count }})
+                            </div>
+                            {% endif %}
+                            
+                            {% if combined_count > 0 %}
+                            <div class="progress-bar bg-warning" role="progressbar" 
+                                 style="width: {{ (combined_count / total * 100) | round }}%;" 
+                                 aria-valuenow="{{ combined_count }}" 
+                                 aria-valuemin="0" aria-valuemax="{{ total }}">
+                                Combined ({{ combined_count }})
+                            </div>
+                            {% endif %}
+                            
+                            {% if other_count > 0 %}
+                            <div class="progress-bar bg-secondary" role="progressbar" 
+                                 style="width: {{ (other_count / total * 100) | round }}%;" 
+                                 aria-valuenow="{{ other_count }}" 
+                                 aria-valuemin="0" aria-valuemax="{{ total }}">
+                                Other ({{ other_count }})
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Anomaly List -->
+                <div class="mb-3">
+                    <h6>Critical Anomalies</h6>
+                    <div class="list-group">
+                        {% set high_anomalies = anomalies|selectattr('severity', 'equalto', 'high')|list %}
+                        {% if high_anomalies|length > 0 %}
+                            {% for anomaly in high_anomalies %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ anomaly.anomaly_type.capitalize() }} Anomaly</h6>
+                                    <small>ID: {{ anomaly.id }}</small>
+                                </div>
+                                <p class="mb-1">{{ anomaly.description }}</p>
+                                <small class="text-danger">
+                                    <i class="fas fa-exclamation-circle me-1"></i> High Severity
+                                </small>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i> No high severity anomalies detected.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- View All Button -->
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('document_view', doc_id=document.id) }}" class="btn btn-outline-danger">
+                        <i class="fas fa-list me-1"></i> View All Anomalies
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                    <h4>No Anomalies Detected</h4>
+                    <p class="text-muted">
+                        The document appears to be free of anomalies based on our analysis.
+                    </p>
+                    {% if document %}
+                    <a href="{{ url_for('document_view', doc_id=document.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i> View Document Details
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Analysis -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-robot me-2"></i> AI Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if document and document.processed %}
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6>Analysis Summary</h6>
+                        <div class="mb-4">
+                            {% if anomalies and anomalies|length > 0 %}
+                                <p>
+                                    Our AI analysis has detected {{ anomalies|length }} potential 
+                                    {% if anomalies|length == 1 %}anomaly{% else %}anomalies{% endif %} in this document. 
+                                    The anomalies are categorized as follows:
+                                </p>
+                                <ul>
+                                    {% set date_anomalies = anomalies|selectattr('anomaly_type', 'equalto', 'date')|list %}
+                                    {% if date_anomalies|length > 0 %}
+                                    <li>
+                                        <strong>Date Anomalies ({{ date_anomalies|length }}):</strong> 
+                                        Inconsistencies in dates or unusual date formats.
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% set number_anomalies = anomalies|selectattr('anomaly_type', 'equalto', 'number')|list %}
+                                    {% if number_anomalies|length > 0 %}
+                                    <li>
+                                        <strong>Numerical Anomalies ({{ number_anomalies|length }}):</strong> 
+                                        Unusual or potentially erroneous numerical values.
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% set combined_anomalies = anomalies|selectattr('anomaly_type', 'equalto', 'combined')|list %}
+                                    {% if combined_anomalies|length > 0 %}
+                                    <li>
+                                        <strong>Combined Anomalies ({{ combined_anomalies|length }}):</strong> 
+                                        Issues involving both dates and numerical values.
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                                <p>
+                                    We recommend reviewing these anomalies carefully, especially those marked as high severity,
+                                    as they may indicate potential issues in the contract.
+                                </p>
+                            {% else %}
+                                <p>
+                                    Our AI analysis has not detected any anomalies in this document. This suggests the document
+                                    has consistent date formats and numerical values without significant deviations.
+                                </p>
+                                <p>
+                                    While no anomalies were detected automatically, we still recommend a human review of the document
+                                    to ensure all terms and conditions are as expected.
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Model Information</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>AI Model</th>
+                                <td>Mistral 7B</td>
+                            </tr>
+                            <tr>
+                                <th>Vector DB</th>
+                                <td>Weaviate</td>
+                            </tr>
+                            <tr>
+                                <th>Processing Time</th>
+                                <td>
+                                    {% if processing_job and processing_job.start_time and processing_job.end_time %}
+                                        {% set duration = (processing_job.end_time - processing_job.start_time).total_seconds() %}
+                                        {{ '%0.2f'|format(duration) }} seconds
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ url_for('chainlit_redirect') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-robot me-2"></i> Ask AI About This Document
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> AI analysis is not available yet. Please wait for the document to be processed.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary bg-gradient text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs me-2"></i> Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('documents') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i> Back to Documents
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('document_view', doc_id=document.id) if document else '#' }}" class="btn btn-outline-primary" {{ 'disabled' if not document }}>
+                                <i class="fas fa-eye me-2"></i> View Document Details
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('upload') }}" class="btn btn-outline-success">
+                                <i class="fas fa-upload me-2"></i> Upload New Document
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Update status if document is still processing
+        {% if document and not document.processed %}
+            refreshDocumentStatus({{ document.id }}, 5000);
+        {% endif %}
+    });
+</script>
+{% endblock %}
