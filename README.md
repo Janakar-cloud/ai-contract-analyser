@@ -2,8 +2,6 @@
 
 An AI-powered contract anomaly detection system designed to identify and analyze potential risks in contract documents. This application leverages Mistral 7B, vLLM, and Weaviate for advanced anomaly detection in contract documents.
 
-![Contract Anomaly Detection](generated-icon.png)
-
 ## Overview
 
 This system analyzes uploaded contracts to identify anomalies in dates, numbers, and logical inconsistencies. It provides a comprehensive web interface for managing documents and a conversational interface through ChainLit for interactive queries.
